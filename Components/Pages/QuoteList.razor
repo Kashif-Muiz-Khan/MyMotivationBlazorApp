@@ -6,15 +6,18 @@
 @inject NavigationManager NavigationManager
 
 
-<div class="row g-0">
-    <div class="col-md-12">
-        <button class="btn btn-primary float-end" @onclick="ShowAddQuote">
-            Add Quote
-        </button>
-    </div>
-</div>
 
-@if (showForm)
+@* This is the form that lets you add new quotes and select the philosophers, still needs implementation where it will let you add a new philosopher *@
+<div>
+    <div class="row g-0">
+        <div class="col-md-12">
+            <button class="btn btn-primary float-end" @onclick="ShowAddQuote">
+                Add Quote
+            </button>
+        </div>
+    </div>
+
+    @if (showForm)
 {
     <div class="card">
         <div class="card-body bg-light">
@@ -35,10 +38,19 @@
                         <ValidationMessage For="@(() => model.Problem)" />
                     </div>
                     <div class="col-md-3">
-                        <label for="total" class="form-label">Philosopher</label>
-                        <InputNumber class="form-control" @bind-Value="model.PhilosopherId" />
-                        <ValidationMessage For="@(() => model.PhilosopherId)" />
+                        <label for="validationCustom04" class="form-label">Philosopher</label>
+                        <select class="form-select" id="validationCustom04" @bind="selectedPhilosopherId" required>
+                            <option selected disabled value="">Choose...</option>
+                            @foreach (var philosopher in philosophers)
+                            {
+                                <option value="@philosopher.Id">@philosopher.Name</option>
+                            }
+                        </select>
+                        <div class="invalid-feedback">
+                            Please select a valid philosopher.
+                        </div>
                     </div>
+
                     <div class="col-md-12">
                         <button type="submit" class="btn btn-primary float-end">
                             @(model.Id == 0 ? "Add Quote" : "Edit Quote")
@@ -50,14 +62,26 @@
         </div>
     </div>
 }
+</div>
 
+
+
+
+
+
+@* This Table shows all the Philosophers, what they said and the id of their sayings, It allows you to edit, delete and see more info
+
+The Info page for this still needs working *@
 
 <table class="table">
     <thead>
         <tr>
             <th scope="col">#</th>
             <th scope="col">Text</th>
-            <th scope="col">PhilospherID</th>
+            <th scope="col">Philosopher</th>
+            <th></th>
+            <th></th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
@@ -66,7 +90,8 @@
             <tr>
                 <td>@quote.Id</td>
                 <td>@quote.Text</td>
-                <td>@quote.PhilosopherId</td>
+                <td>@GetPhilosopherName(quote.PhilosopherId)</td>
+
                 <td>
                     <button class="btn btn-success" @onclick="() => Edit(quote)">Edit</button>
                 </td>
@@ -81,17 +106,24 @@
     </tbody>
 </table>
 
+
+
+
 @code {
     private List<Quote>? quotes;
     private EditContext editContext;
     private Quote model;
     private bool showForm;
 
+
+   
+    // passes the quote Id to info page - Still needs implementation
     private void Info(Quote quotes)
     {
         NavigationManager.NavigateTo($"/Info/{quotes.Id}");
     }
 
+    // Opens up the Add Quote form to add new quote
     private void ShowAddQuote()
     {
         model = new Quote();
@@ -99,6 +131,7 @@
         showForm = true;
     }
 
+    // Opens up the Add/Edit quote form and displays the quote selected to be edited
     private void Edit(Quote quote)
     {
         model = quote;
@@ -106,6 +139,7 @@
         showForm = true;
     }
 
+    // Adds quote to DB if its new otherwise updates the existing quote
     private async Task Submit()
     {
         if (model.Id == 0)
@@ -118,11 +152,7 @@
 
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        await Refresh();
-    }
-
+    // Refreshes the database / quotes after any changes or edits
     private async Task Refresh()
     {
         model = new Quote();
@@ -130,12 +160,52 @@
         quotes = await DbContext.Quotes.ToListAsync();
     }
 
+    // Deletes quotes from the database and list
     private async Task Delete(Quote quotes)
     {
         DbContext.Quotes.Remove(quotes);
         await DbContext.SaveChangesAsync();
         await Refresh();
     }
+
+    // Method used to get Philosopher name from Philosphers Table using philosopher id from Quote table
+    private string GetPhilosopherName(int philosopherId)
+    {
+        var philosopher = DbContext.Philosophers.Find(philosopherId);
+        return philosopher != null ? philosopher.Name : "Unknown";
+    }
+
+
+    // private int variable declared that will store objects of Philospher Type
+    private int selectedPhilosopherId;
+    private List<Philosopher> philosophers = new List<Philosopher>();
+
+
+    // The following code creates variables that will store selected philosopher ID and lists of philosophers. 
+    // It will then load quotes and philosphers from database
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        await LoadQuotes();
+        await LoadPhilosophers();
+    }
+
+    private async Task LoadQuotes()
+    {
+        quotes = await DbContext.Quotes.ToListAsync();
+    }
+
+    private async Task LoadPhilosophers()
+    {
+        philosophers = await DbContext.Philosophers.ToListAsync();
+    }
+
+
 
 
 }
