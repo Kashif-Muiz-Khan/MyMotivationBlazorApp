@@ -1,0 +1,55 @@
+﻿@page "/Info/{quoteId:int}"
+@using Microsoft.EntityFrameworkCore
+@using MyMotivationBlazorApp.Context
+@using MyMotivationBlazorApp.Model
+@inject DatabaseContext DbContext
+
+<h3>Information About Philosopher</h3>
+
+@if (philosopher != null)
+{
+    <div class="container d-flex justify-content-center">
+        <div class="card mb-3" style="max-width: 800px;">
+            <div class="row g-0">
+                <div class="col-md-4">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/bc/Socrate_du_Louvre.jpg" class="card-img-top" alt="https://upload.wikimedia.org/wikipedia/commons/2/29/UWASocrates_gobeirne_cropped.jpg">
+                </div>
+                <div class="col-md-8">
+                    <div class="card-body">
+                        <h5 class="card-title">Socrates</h5>
+                        <p class="card-text">A greek philospher seen as prophet in Islam. He was among the first moral philosophers of the ethical tradition of thought. An enigmatic figure, Socrates authored no texts and is known mainly through the posthumous accounts of classical writers, particularly his students Plato and Xenophon</p>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">Born : @philosopher.Born </li>
+                        <li class="list-group-item">Died : @philosopher.Death</li>
+                        <li class="list-group-item">Occupation : @philosopher.Occupation</li>
+                    </ul>
+                    <div class="card-body">
+                        <a href="https://www.alislam.org/library/books/revelation/part_1_section_5.html" class="card-link">Khalifa Rabih regarding Socrates</a>
+                        <a href="https://youtu.be/Ta3l7dLe_YA?si=gOFPGYXg3pbkzj2n" class="card-link">Jordan Peterson on Socrates</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <p>No philosopher found for Quote ID @QuoteId</p>
+}
+
+@code {
+    [Parameter]
+    public int QuoteId { get; set; }
+
+    private Philosopher philosopher;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Fetch the philosopher based on the philosopher ID associated with the quote
+        philosopher = await DbContext.Quotes
+            .Where(q => q.Id == QuoteId)
+            .Select(q => q.Philosopher)
+            .FirstOrDefaultAsync();
+    }
+}
