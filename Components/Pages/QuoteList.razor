@@ -1,0 +1,141 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using MyMotivationBlazorApp.Context
+@using MyMotivationBlazorApp.Model
+@rendermode InteractiveServer
+@inject DatabaseContext DbContext
+@inject NavigationManager NavigationManager
+
+
+<div class="row g-0">
+    <div class="col-md-12">
+        <button class="btn btn-primary float-end" @onclick="ShowAddQuote">
+            Add Quote
+        </button>
+    </div>
+</div>
+
+@if (showForm)
+{
+    <div class="card">
+        <div class="card-body bg-light">
+            <h4 class="card-title">
+                @(model.Id == 0 ? "Add Quote" : "Edit Quote")
+            </h4>
+            <EditForm OnValidSubmit="Submit" EditContext="editContext">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="name" class="form-label">Text</label>
+                        <InputText class="form-control" placeholder="Text" @bind-Value="model.Text" />
+                        <ValidationMessage For="@(() => model.Text)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label for="type" class="form-label">Problem</label>
+                        <InputText class="form-control" placeholder="Problem" @bind-Value="model.Problem" />
+                        <ValidationMessage For="@(() => model.Problem)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label for="total" class="form-label">Philosopher</label>
+                        <InputNumber class="form-control" @bind-Value="model.PhilosopherId" />
+                        <ValidationMessage For="@(() => model.PhilosopherId)" />
+                    </div>
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary float-end">
+                            @(model.Id == 0 ? "Add Quote" : "Edit Quote")
+                        </button>
+                    </div>
+
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+
+<table class="table">
+    <thead>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">Text</th>
+            <th scope="col">PhilospherID</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var quote in quotes)
+        {
+            <tr>
+                <td>@quote.Id</td>
+                <td>@quote.Text</td>
+                <td>@quote.PhilosopherId</td>
+                <td>
+                    <button class="btn btn-success" @onclick="() => Edit(quote)">Edit</button>
+                </td>
+                <td>
+                    <button class="btn btn-danger" @onclick="() => Delete(quote)">Delete</button>
+                </td>
+                <td>
+                    <button class="btn btn-primary" @onclick="() => Info(quote)">Info</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<Quote>? quotes;
+    private EditContext editContext;
+    private Quote model;
+    private bool showForm;
+
+    private void Info(Quote quotes)
+    {
+        NavigationManager.NavigateTo($"/Info/{quotes.Id}");
+    }
+
+    private void ShowAddQuote()
+    {
+        model = new Quote();
+        editContext = new EditContext(model);
+        showForm = true;
+    }
+
+    private void Edit(Quote quote)
+    {
+        model = quote;
+        editContext = new EditContext(model);
+        showForm = true;
+    }
+
+    private async Task Submit()
+    {
+        if (model.Id == 0)
+            DbContext.Quotes.Add(model);
+        else
+            DbContext.Quotes.Update(model);
+
+        await DbContext.SaveChangesAsync();
+        await Refresh();
+
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        model = new Quote();
+        editContext = new EditContext(model);
+        quotes = await DbContext.Quotes.ToListAsync();
+    }
+
+    private async Task Delete(Quote quotes)
+    {
+        DbContext.Quotes.Remove(quotes);
+        await DbContext.SaveChangesAsync();
+        await Refresh();
+    }
+
+
+}
