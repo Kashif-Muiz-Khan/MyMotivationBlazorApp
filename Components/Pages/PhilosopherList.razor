@@ -1,0 +1,220 @@
+﻿@page "/AddPhilosopher"
+@using Microsoft.EntityFrameworkCore
+@using MyMotivationBlazorApp.Context
+@using MyMotivationBlazorApp.Model
+@rendermode InteractiveServer
+@inject DatabaseContext DbContext
+@inject NavigationManager NavigationManager
+
+
+
+
+<div>
+    <div class="row g-0">
+        <div class="col-md-12">
+            <button class="btn btn-primary float-end" @onclick="ShowAddPhilosopher">
+                Add Philosopher
+            </button>
+        </div>
+    </div>
+
+    @if (showForm)
+    {
+        <div class="card">
+            <div class="card-body bg-light">
+                <h4 class="card-title">
+                    @(model.Id == 0 ? "Add Philosopher" : "Edit Philosopher")
+                </h4>
+                <EditForm OnValidSubmit="Submit" EditContext="editContext">
+                    <DataAnnotationsValidator />
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="name" class="form-label">Name</label>
+                            <InputText class="form-control" placeholder="Name" @bind-Value="model.Name" />
+                            <ValidationMessage For="@(() => model.Name)" />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="born" class="form-label">Born</label>
+                            <InputText class="form-control" placeholder="Born" @bind-Value="model.Born" />
+                            <ValidationMessage For="@(() => model.Born)" />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="death" class="form-label">Death</label>
+                            <InputText class="form-control" placeholder="Death" @bind-Value="model.Death" />
+                            <ValidationMessage For="@(() => model.Death)" />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="occupation" class="form-label">Occupation</label>
+                            <InputText class="form-control" placeholder="Occupation" @bind-Value="model.Occupation" />
+                            <ValidationMessage For="@(() => model.Occupation)" />
+                        </div>
+                        <div class="col-md-12">
+                            <InputCheckbox class="form-check-input" @bind-Value="model.Prophet" />
+                            <label for="prophet" class="form-label">Prophet</label>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="imagelink" class="form-label">ImageLink</label>
+                            <InputText class="form-control" placeholder="ImageLink" @bind-Value="model.ImageLink" />
+                            <ValidationMessage For="@(() => model.ImageLink)" />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="link1" class="form-label">Link1</label>
+                            <InputText class="form-control" placeholder="Link1" @bind-Value="model.Link1" />
+                            <ValidationMessage For="@(() => model.Link1)" />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="link2" class="form-label">Link2</label>
+                            <InputText class="form-control" placeholder="Link2" @bind-Value="model.Link2" />
+                            <ValidationMessage For="@(() => model.Link2)" />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="description" class="form-label">Description</label>
+                            <InputText class="form-control" placeholder="Description" @bind-Value="model.Description" />
+                            <ValidationMessage For="@(() => model.Description)" />
+                        </div>
+
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-primary float-end">
+                                @(model.Id == 0 ? "Add Philosopher" : "Edit Philosopher")
+                            </button>
+                        </div>
+
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">Name</th>
+            <th scope="col">Born</th>
+            <th scope="col">Death</th>
+            <th scope="col">Occupation</th>
+            <th scope="col">Prophet</th>
+            <th scope="col">ImageLink</th>
+            <th scope="col">Link1</th>
+            <th scope="col">Link2</th>
+            <th scope="col">Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var philosopher in philosophers)
+        {
+            <tr>
+                <td>@philosopher.Id</td>
+                <td>@philosopher.Name</td>
+                <td>@philosopher.Born</td>
+                <td>@philosopher.Death</td>
+                <td>@philosopher.Occupation</td>
+                <td>@philosopher.Prophet</td>
+                <td>@philosopher.ImageLink</td>
+                <td>@philosopher.Link1</td>
+                <td>@philosopher.Link2</td>
+                <td>@philosopher.Description</td>
+
+                <td>
+                    <button class="btn btn-success" @onclick="() => Edit(philosopher)">Edit</button>
+                </td>
+                <td>
+                    <button class="btn btn-danger" @onclick="() => Delete(philosopher)">Delete</button>
+                </td>
+                <td>
+                    <button class="btn btn-primary" @onclick="() => Info(philosopher)">Info</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+@code {
+
+
+    private List<Philosopher> philosophers = new List<Philosopher>();
+    private EditContext editContext;
+    private Philosopher model;
+    private bool showForm;
+  
+
+    private void ShowAddPhilosopher()
+    {
+        model = new Philosopher();
+        editContext = new EditContext(model);
+        showForm = true;
+    }
+
+
+    private async Task Submit()
+    {
+        if (model.Id == 0)
+            DbContext.Philosophers.Add(model);
+        else
+            DbContext.Philosophers.Update(model);
+
+        await DbContext.SaveChangesAsync();
+        await Refresh();
+
+    }
+
+    private async Task Refresh()
+    {
+        model = new Philosopher();
+        editContext = new EditContext(model);
+        philosophers = await DbContext.Philosophers.ToListAsync();
+    }
+
+
+
+
+    private void Edit(Philosopher philosopher)
+    {
+        model = philosopher;
+        editContext = new EditContext(model);
+        showForm = true;
+    }
+
+    private async Task Delete(Philosopher philosopher)
+    {
+        DbContext.Philosophers.Remove(philosopher);
+        await DbContext.SaveChangesAsync();
+        await Refresh();
+    }
+
+    private void Info(Philosopher philosopher)
+    {
+        NavigationManager.NavigateTo($"/PInfo/{philosopher.Id}");
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        await LoadPhilosophers();
+    }
+
+    private async Task LoadPhilosophers()
+    {
+        philosophers = await DbContext.Philosophers.ToListAsync();
+    }
+
+
+
+
+}
