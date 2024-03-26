@@ -1,0 +1,149 @@
+﻿
+@using Genbox.Wikipedia
+@using Genbox.Wikipedia.Enums;
+@using Genbox.Wikipedia.Objects;
+@using HtmlAgilityPack;
+@using System.Net;
+@using Microsoft.EntityFrameworkCore
+@using MyMotivationBlazorApp.Context
+@using MyMotivationBlazorApp.Model
+@rendermode InteractiveServer
+@inject DatabaseContext DbContext
+
+
+@page "/philosopher-info/{searchTerm}"
+
+<h3>Philosopher Info</h3>
+
+@if (IsLoading)
+{
+    <p>Loading...</p>
+}
+else if (Philosopher == null)
+{
+    <p>No information found for the search term "@SearchTerm".</p>
+}
+else
+{
+    <div class="container d-flex justify-content-center">
+        <div class="card mb-3" style="max-width: 800px;">
+            <div class="row g-0">
+                <div class="col-md-4">
+                    <img src="@Philosopher.FirstPictureLink" class="card-img-top" alt="@Philosopher.FirstPictureLink">
+                </div>
+                <div class="col-md-8">
+                    <div class="card-body">
+                        <h5 class="card-title">@Philosopher.Title</h5>
+                        <p class="card-text">@Philosopher.FirstParagraph</p>
+                    </div>
+                    <div class="card-body">
+                        <a href="@Philosopher.Url" class="card-link">Link to Wikipedia</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string SearchTerm { get; set; }
+
+    private PhilosopherModel Philosopher;
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FetchPhilosopherInfo(SearchTerm);
+    }
+
+    private async Task FetchPhilosopherInfo(string searchTerm)
+    {
+        // Fetch search results from Wikipedia
+        WikipediaClient client = new WikipediaClient();
+        WikiSearchRequest req = new WikiSearchRequest(searchTerm)
+            {
+                Limit = 1, // Limit to 1 result
+                WhatToSearch = WikiWhat.Text
+            };
+        WikiSearchResponse resp = await client.SearchAsync(req).ConfigureAwait(false);
+
+        if (resp.QueryResult.SearchResults.Count > 0)
+        {
+            // Extract necessary information from the first search result
+            string title = resp.QueryResult.SearchResults[0].Title;
+            string url = resp.QueryResult.SearchResults[0].Url.ToString();
+
+            // Fetch page content from Wikipedia
+            HttpClient httpClient = new HttpClient();
+            HttpResponseMessage response = await httpClient.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+            string htmlContent = await response.Content.ReadAsStringAsync();
+
+            // Extract the first paragraph and the link of the first picture
+            string firstParagraph = ExtractFirstParagraph(htmlContent);
+            string firstPictureLink = ExtractFirstPictureLink(htmlContent);
+
+            // Assign the retrieved data to the Philosopher model
+            Philosopher = new PhilosopherModel
+                {
+                    Title = title,
+                    FirstParagraph = firstParagraph,
+                    FirstPictureLink = firstPictureLink,
+                    Url = url
+                };
+        }
+
+        IsLoading = false;
+    }
+
+    private string ExtractFirstParagraph(string html)
+    {
+        HtmlDocument doc = new HtmlDocument();
+        doc.LoadHtml(html);
+
+        // Select the main content section of the Wikipedia page
+        var contentNode = doc.DocumentNode.SelectSingleNode("//div[@id='mw-content-text']");
+
+        // Select all paragraphs within the main content section
+        var paragraphs = contentNode?.SelectNodes(".//p");
+
+        // Iterate through paragraphs to find the first non-empty one
+        foreach (var paragraph in paragraphs)
+        {
+            // Remove any leading or trailing whitespace and check if the paragraph is not empty
+            string paragraphText = paragraph.InnerText.Trim();
+            if (!string.IsNullOrEmpty(paragraphText))
+            {
+                return paragraphText;
+            }
+        }
+
+        return "First paragraph not found";
+    }
+
+    private string ExtractFirstPictureLink(string html)
+    {
+        HtmlDocument doc = new HtmlDocument();
+        doc.LoadHtml(html);
+
+        // Select the main content section of the Wikipedia page
+        var contentNode = doc.DocumentNode.SelectSingleNode("//div[@id='mw-content-text']");
+
+        // Select the first image within the main content section
+        var firstImageNode = contentNode?.SelectSingleNode(".//img");
+
+        // Extract the src attribute of the image
+        return firstImageNode?.GetAttributeValue("src", "No image found");
+    }
+
+    // Define a model to hold the philosopher information
+    public class PhilosopherModel
+    {
+        public string Title { get; set; }
+        public string FirstParagraph { get; set; }
+        public string FirstPictureLink { get; set; }
+        public string Url { get; set; }
+    }
+}
+
