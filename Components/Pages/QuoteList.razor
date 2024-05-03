@@ -118,10 +118,13 @@ The Info page for this still needs working *@
 
    
     // passes the quote Id to info page - Still needs implementation
-    private void Info(Quote quotes)
+    // Passes the quote and philosopher name to the info page
+    private void Info(Quote quote)
     {
-        NavigationManager.NavigateTo($"/Info/{quotes.Id}");
+        var philosopherName = GetPhilosopherName(quote.PhilosopherId);
+        NavigationManager.NavigateTo($"/philosopher-info/{philosopherName}");
     }
+
 
     // Opens up the Add Quote form to add new quote
     private void ShowAddQuote()
